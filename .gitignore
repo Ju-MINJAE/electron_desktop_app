@@ -1,0 +1,38 @@
+# Dependencies and package-manager cache
+node_modules/
+.pnpm-store/
+
+# Generated bundles and installers (build/ contains source assets)
+/dist/
+/out/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Tool caches, test results, and logs
+.eslintcache
+*.tsbuildinfo
+coverage/
+.nyc_output/
+*.log
+*.log.*
+
+# Local signing credentials
+*.p12
+*.pfx
+*.key
+
+# OS and editor-local files
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+*.swp
+*.swo
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
