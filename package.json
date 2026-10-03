@@ -19,6 +19,7 @@
     "build:linux": "pnpm build && electron-builder --linux --publish never",
     "format:check": "prettier --check .",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck",
+    "test:remote": "node --test scripts/remote.test.cjs",
     "test:smoke": "pnpm build && electron scripts/smoke.cjs"
   },
   "dependencies": {

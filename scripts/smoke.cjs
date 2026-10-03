@@ -16,6 +16,9 @@ app.on('browser-window-created', (_, window) => {
       const result = await window.webContents.executeJavaScript(`
         (async () => ({
           reply: await window.api.ping(),
+          invalidRemote: await window.api.connectRDP({ ip: '127.0.0.1;echo', port: 3389 }),
+          invalidWake: await window.api.wakePC({ ip: 'invalid' }),
+          invalidShutdown: await window.api.shutdownPC({ ip: 'invalid' }),
           electron: window.api.versions.electron,
           genericAPI: typeof window.electron,
           requireType: typeof require,
@@ -24,6 +27,9 @@ app.on('browser-window-created', (_, window) => {
         }))()
       `)
       assert.equal(result.reply, 'pong')
+      assert.equal(result.invalidRemote.ok, false)
+      assert.equal(result.invalidWake.ok, false)
+      assert.equal(result.invalidShutdown.ok, false)
       assert.equal(result.electron, process.versions.electron)
       assert.equal(result.genericAPI, 'undefined')
       assert.equal(result.requireType, 'undefined')

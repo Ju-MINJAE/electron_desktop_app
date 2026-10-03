@@ -2,6 +2,8 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { pathToFileURL } from 'node:url'
 import { IPC_CHANNELS } from '../shared-api'
+import { connectRDP } from './remote'
+import { wakePC, shutdownPC, probeRDP } from './power'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
@@ -25,8 +27,11 @@ function isTrustedRenderer(url: string): boolean {
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    width: 1280,
+    minWidth: 960,
+    minHeight: 600,
+    title: 'TotalControlPro',
+    height: 800,
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -93,6 +98,67 @@ app.whenReady().then(() => {
       throw new Error('Invalid IPC request')
     }
     return 'pong'
+  })
+
+  ipcMain.handle(IPC_CHANNELS.connectRDP, async (event, ...args: unknown[]) => {
+    if (
+      !BrowserWindow.fromWebContents(event.sender) ||
+      event.senderFrame !== event.sender.mainFrame ||
+      !event.senderFrame ||
+      !isTrustedRenderer(event.senderFrame.url) ||
+      args.length !== 1
+    ) {
+      throw new Error('Invalid IPC request')
+    }
+    try {
+      await connectRDP(args[0])
+      return {
+        ok: true,
+        message: 'RDP 클라이언트를 열었습니다. 접속과 로그인은 클라이언트에서 확인하세요.'
+      }
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : '원격 접속 실행에 실패했습니다.'
+      }
+    }
+  })
+
+  for (const [channel, operation, message] of [
+    [IPC_CHANNELS.wakePC, wakePC, 'WOL 패킷을 전송했습니다. 실제 부팅 여부는 별도로 확인하세요.'],
+    [
+      IPC_CHANNELS.shutdownPC,
+      shutdownPC,
+      '종료 명령이 수락되었습니다. 실제 종료 여부는 별도로 확인하세요.'
+    ]
+  ] as const) {
+    ipcMain.handle(channel, async (event, ...args: unknown[]) => {
+      if (
+        !BrowserWindow.fromWebContents(event.sender) ||
+        event.senderFrame !== event.sender.mainFrame ||
+        !event.senderFrame ||
+        !isTrustedRenderer(event.senderFrame.url) ||
+        args.length !== 1
+      )
+        throw new Error('Invalid IPC request')
+      try {
+        await operation(args[0])
+        return { ok: true, message }
+      } catch (error) {
+        return { ok: false, message: error instanceof Error ? error.message : '전원 요청 실패' }
+      }
+    })
+  }
+  ipcMain.handle(IPC_CHANNELS.probeRDP, (event, ...args: unknown[]) => {
+    if (
+      !BrowserWindow.fromWebContents(event.sender) ||
+      event.senderFrame !== event.sender.mainFrame ||
+      !event.senderFrame ||
+      !isTrustedRenderer(event.senderFrame.url) ||
+      args.length !== 1
+    )
+      throw new Error('Invalid IPC request')
+    return probeRDP(args[0])
   })
 
   createWindow()
